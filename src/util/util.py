@@ -61,7 +61,7 @@ def pre_process(text):
     
     return text
 
-def pre_process_word(word, stopwords = []):
+def pre_process_word(word, stopwords = [], lang = 'pt'):
     
     # remove acentuação
     word = unidecode(word)
@@ -70,7 +70,7 @@ def pre_process_word(word, stopwords = []):
     
     word = word.strip()
     
-    stopwords  = LANG['pt'][1]
+    stopwords  = LANG[lang][1]
 
     if word in stopwords:
         return ""
@@ -84,7 +84,7 @@ def pre_process_word(word, stopwords = []):
 def tokenize(text, lang='pt'):
     # clean
     text = pre_process(text)
-    nlp, stopwords = LANG['pt']
+    nlp, stopwords = LANG[lang]
 
     # Transform 
     text = nlp(text)
@@ -93,7 +93,7 @@ def tokenize(text, lang='pt'):
     tokens = [token.lemma_ for token in text if not token.is_stop]
 
     # Clean tokens
-    tokens = [pre_process_word(item, stopwords) for item in tokens]
+    tokens = [pre_process_word(item, stopwords, lang) for item in tokens]
     
     # Stemização
 #     stems  = []

@@ -90,7 +90,8 @@ class CleanDataFrames(luigi.Task):
                                                    self.val_size, self.seed, self.sample, task_hash))),
                 luigi.LocalTarget(
                     os.path.join(self.input().path, "val_%.2f_%d_%d_%s.csv" % (self.val_size, self.seed, self.sample, task_hash))),
-                luigi.LocalTarget(os.path.join(self.input().path, "test_processed.csv")),
+                luigi.LocalTarget(os.path.join(self.input().path, "test_%.2f_%d_%d_%s.csv") % (
+                                                   self.val_size, self.seed, self.sample, task_hash))),
                 luigi.LocalTarget(os.path.join(self.input().path, "df_dummies_category_%s_%d.csv" % (self.with_smooth_labels, self.smooth_labels_intensity))))
 
 
