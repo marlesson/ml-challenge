@@ -128,7 +128,7 @@ class CleanDataFrames(luigi.Task):
 
         if self.with_smooth_labels:
             mask_label = train_df.label_quality.apply(lambda x: 1 if x == 'reliable' else 0).values
-            Y          = smooth_labels(df_dummies_category.values, mask_label, self.smooth_labels_intensity)
+            Y          = util.smooth_labels(df_dummies_category.values, mask_label, self.smooth_labels_intensity)
             df_dummies_category = pd.DataFrame(Y, columns = df_dummies_category.columns)
 
         train_df, val_df = train_test_split(train_df, test_size=self.val_size, random_state=self.seed)
