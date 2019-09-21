@@ -74,7 +74,7 @@ class UnzipDataset(luigi.Task):
 
 
 class CleanDataFrames(luigi.Task):
-    val_size: float = luigi.FloatParameter(default=0.2)
+    val_size: float = luigi.FloatParameter(default=0.3)
     seed: int = luigi.IntParameter(default=42)
     sample: int = luigi.IntParameter(default=20000000)
     def requires(self):
@@ -134,7 +134,7 @@ class CleanDataFrames(luigi.Task):
 
 
 class TokenizerDataFrames(luigi.Task):
-    val_size: float = luigi.FloatParameter(default=0.2)
+    val_size: float = luigi.FloatParameter(default=0.3)
     seed: int = luigi.IntParameter(default=42)
     num_words: int = luigi.IntParameter(default=5000)
     seq_size: int = luigi.IntParameter(default=20)
@@ -203,7 +203,7 @@ class TokenizerDataFrames(luigi.Task):
             pickle.dump(word_index, f)                                
 
 class LoadEmbeddings(luigi.Task):
-    val_size: float = luigi.FloatParameter(default=0.2)
+    val_size: float = luigi.FloatParameter(default=0.3)
     seed: int = luigi.IntParameter(default=42)
     num_words: int = luigi.IntParameter(default=5000)
     seq_size: int = luigi.IntParameter(default=20)

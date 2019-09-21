@@ -44,7 +44,7 @@ DEFAULT_DEVICE = "cuda"
 
 class ModelTraining(luigi.Task):
     device: str = luigi.ChoiceParameter(choices=["cpu", "cuda"], default=DEFAULT_DEVICE)
-    val_size: float = luigi.FloatParameter(default=0.2)
+    val_size: float = luigi.FloatParameter(default=0.3)
     seed: int = luigi.IntParameter(default=42)
     num_words: int = luigi.IntParameter(default=5000)
     seq_size: int = luigi.IntParameter(default=20)

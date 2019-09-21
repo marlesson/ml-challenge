@@ -61,6 +61,8 @@ class SimpleRNNTraining(ModelTraining):
                     trainable=True)(input_x)
 
         x = SpatialDropout1D(0.3)(x)
+        #x = LSTM(20, return_sequences=True)(x)
+
         x = Conv1D(256, 3, padding='same', activation='relu')(x)
 
         x = GlobalMaxPool1D()(x)
