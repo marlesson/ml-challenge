@@ -124,12 +124,16 @@ class CleanDataFrames(luigi.Task):
 
         # Get Classes
         df_dummies_category = pd.get_dummies(train_df['category'])
-        print(df_dummies_category.head())
-
         if self.with_smooth_labels:
+            print("With Smooth Labels")
+
             mask_label = train_df.label_quality.apply(lambda x: 1 if x == 'reliable' else 0).values
-            Y          = util.smooth_labels(df_dummies_category.values, mask_label, self.smooth_labels_intensity)
-            df_dummies_category = pd.DataFrame(Y, columns = df_dummies_category.columns)
+            print(mask_label.mean())
+
+            smooth_Y   = util.smooth_labels(df_dummies_category.values, mask_label, self.smooth_labels_intensity)
+            df_dummies_category = pd.DataFrame(smooth_Y, columns = df_dummies_category.columns, index=df_dummies_category.index)
+
+        print(df_dummies_category.head())
 
         train_df, val_df = train_test_split(train_df, test_size=self.val_size, random_state=self.seed)
 
@@ -153,7 +157,8 @@ class TokenizerDataFrames(luigi.Task):
 
     def requires(self):
         return CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample,
-            with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity)
+                                with_smooth_labels = self.with_smooth_labels, 
+                                smooth_labels_intensity = self.smooth_labels_intensity)
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
         task_hash = self.task_id.split("_")[-1]
@@ -227,7 +232,8 @@ class LoadEmbeddings(luigi.Task):
     def requires(self):
         return TokenizerDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample,
                                         num_words=self.num_words, seq_size=self.seq_size,
-                                        with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity)
+                                        with_smooth_labels = self.with_smooth_labels, 
+                                        smooth_labels_intensity = self.smooth_labels_intensity)
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
         task_hash = self.task_id.split("_")[-1]
