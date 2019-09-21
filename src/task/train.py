@@ -57,14 +57,19 @@ class ModelTraining(luigi.Task):
     val_batch_size: int = luigi.IntParameter(default=100)
     epochs: int = luigi.IntParameter(default=30)
     sample: int = luigi.IntParameter(default=20000000)
+    with_smooth_labels: bool = luigi.BoolParameter(default=False)
+    smooth_labels_intensity: float = luigi.FloatParameter(default=0.7)
 
 
     def requires(self):
-        return (CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample),
+        return (CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample,
+                                with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity),
                 TokenizerDataFrames(val_size=self.val_size, seed=self.seed, 
-                                        num_words=self.num_words, seq_size=self.seq_size, sample=self.sample),
+                                        num_words=self.num_words, seq_size=self.seq_size, sample=self.sample,
+                                        with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity),
                 LoadEmbeddings(val_size=self.val_size, seed=self.seed, dim=self.dim, embedding=self.embedding,
-                                        num_words=self.num_words, seq_size=self.seq_size, sample=self.sample))
+                                        num_words=self.num_words, seq_size=self.seq_size, sample=self.sample,
+                                        with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity))
 
     def output(self):
         return luigi.LocalTarget(get_task_dir(self.__class__, self.task_id))
@@ -211,7 +216,7 @@ class ModelTraining(luigi.Task):
 
       earlystop  = EarlyStopping(monitor='val_f1_m',
                                   min_delta=0,
-                                  patience=5,
+                                  patience=3,
                                   verbose=0, 
                                   mode='max')      
       return [checkpoint, earlystop]

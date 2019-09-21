@@ -77,6 +77,9 @@ class CleanDataFrames(luigi.Task):
     val_size: float = luigi.FloatParameter(default=0.3)
     seed: int = luigi.IntParameter(default=42)
     sample: int = luigi.IntParameter(default=20000000)
+    with_smooth_labels: bool = luigi.BoolParameter(default=False)
+    smooth_labels_intensity: float = luigi.FloatParameter(default=0.7)
+
     def requires(self):
         return UnzipDataset()
 
@@ -88,7 +91,7 @@ class CleanDataFrames(luigi.Task):
                 luigi.LocalTarget(
                     os.path.join(self.input().path, "val_%.2f_%d_%d_%s.csv" % (self.val_size, self.seed, self.sample, task_hash))),
                 luigi.LocalTarget(os.path.join(self.input().path, "test_%d.csv" %(self.sample))),
-                luigi.LocalTarget(os.path.join(self.input().path, "df_dummies_category.csv")))
+                luigi.LocalTarget(os.path.join(self.input().path, "df_dummies_category_%s_%d.csv" % (self.with_smooth_labels, self.smooth_labels_intensity))))
 
 
     def run(self):
@@ -123,6 +126,11 @@ class CleanDataFrames(luigi.Task):
         df_dummies_category = pd.get_dummies(train_df['category'])
         print(df_dummies_category.head())
 
+        if self.with_smooth_labels:
+            mask_label = train_df.label_quality.apply(lambda x: 1 if x == 'reliable' else 0).values
+            Y          = smooth_labels(df_dummies_category.values, mask_label, self.smooth_labels_intensity)
+            df_dummies_category = pd.DataFrame(Y, columns = df_dummies_category.columns)
+
         train_df, val_df = train_test_split(train_df, test_size=self.val_size, random_state=self.seed)
 
         print(self.output()[0].path)
@@ -139,10 +147,13 @@ class TokenizerDataFrames(luigi.Task):
     num_words: int = luigi.IntParameter(default=5000)
     seq_size: int = luigi.IntParameter(default=20)
     sample: int = luigi.IntParameter(default=20000000)
+    with_smooth_labels: bool = luigi.BoolParameter(default=False)
+    smooth_labels_intensity: float = luigi.FloatParameter(default=0.7)
 
 
     def requires(self):
-        return CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample)
+        return CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample,
+            with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity)
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
         task_hash = self.task_id.split("_")[-1]
@@ -210,10 +221,13 @@ class LoadEmbeddings(luigi.Task):
     dim: int = luigi.IntParameter(default=300)
     embedding: str = luigi.ChoiceParameter(choices=["glove", "fasttext"], default="fasttext")
     sample: int = luigi.IntParameter(default=20000000)
+    with_smooth_labels: bool = luigi.BoolParameter(default=False)
+    smooth_labels_intensity: float = luigi.FloatParameter(default=0.7)
 
     def requires(self):
         return TokenizerDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample,
-                                        num_words=self.num_words, seq_size=self.seq_size)
+                                        num_words=self.num_words, seq_size=self.seq_size,
+                                        with_smooth_labels = self.with_smooth_labels, smooth_labels_intensity = self.smooth_labels_intensity)
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
         task_hash = self.task_id.split("_")[-1]
