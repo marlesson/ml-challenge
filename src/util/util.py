@@ -12,6 +12,39 @@ LANG = {
     'es': (spacy.load('es'), nltk.corpus.stopwords.words('spanish'))
 }
 
+from tensorflow.keras.datasets import mnist
+from tensorflow import keras
+import numpy as np
+def smooth_labels(y, mask, smooth_factor):
+    '''Convert a matrix of one-hot row-vector labels into smoothed versions.
+
+    # Arguments
+        y: matrix of one-hot row-vector labels to be smoothed
+        smooth_factor: label smoothing factor (between 0 and 1)
+
+    # Returns
+        A matrix of smoothed labels.
+    '''
+    assert len(y.shape) == 2
+    if 0 <= smooth_factor <= 1:
+        # label smoothing ref: https://www.robots.ox.ac.uk/~vgg/rg/papers/reinception.pdf
+        
+        y     = y.astype('float16')
+        y_ori = y.astype('int8')#.copy()
+        
+        # discont
+        y *= ((1 - smooth_factor))
+        y += smooth_factor / y.shape[1]
+        
+        # add mask
+        y -= (smooth_factor/y.shape[1])*np.array([mask]).T
+        y += y_ori*smooth_factor*np.array([mask]).T
+        
+    else:
+        raise Exception(
+            'Invalid label smoothing factor: ' + str(smooth_factor))
+    return y    
+    
 def pre_process(text):
     # lowercase
     text=text.lower()

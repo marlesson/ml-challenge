@@ -59,14 +59,15 @@ class ModelTraining(luigi.Task):
     batch_size: int = luigi.IntParameter(default=50)
     val_batch_size: int = luigi.IntParameter(default=100)
     epochs: int = luigi.IntParameter(default=30)
+    sample: int = luigi.IntParameter(default=20000000)
 
 
     def requires(self):
-        return (CleanDataFrames(val_size=self.val_size, seed=self.seed),
+        return (CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample),
                 TokenizerDataFrames(val_size=self.val_size, seed=self.seed, 
-                                        num_words=self.num_words, seq_size=self.seq_size),
+                                        num_words=self.num_words, seq_size=self.seq_size, sample=self.sample),
                 LoadEmbeddings(val_size=self.val_size, seed=self.seed, dim=self.dim, embedding=self.embedding,
-                                        num_words=self.num_words, seq_size=self.seq_size))
+                                        num_words=self.num_words, seq_size=self.seq_size, sample=self.sample))
 
     def output(self):
         return luigi.LocalTarget(get_task_dir(self.__class__, self.task_id))
@@ -186,13 +187,23 @@ class ModelTraining(luigi.Task):
         # Evaluate
         model.load_weights(get_keras_weights_path(self.output_path))
 
+        # classification_report.txt
         y_valid     = list(Y_classes[Y_valid.argmax(1)])
-        pred        = model.predict(X_valid, batch_size=500)
+        pred        = model.predict(X_valid, batch_size=self.batch_size)
         predictions = Y_classes[pred.argmax(1)]
 
         with open("%s/classification_report.txt" % self.output_path, "w") as summary_file:
             with redirect_stdout(summary_file):
                 print(classification_report(y_valid, predictions))
+
+
+        # metrics.txt
+        with open("%s/metrics.txt" % self.output_path, "w") as summary_file:
+            with redirect_stdout(summary_file):
+              val_loss, val_acc, fi_score = model.evaluate(X_valid, Y_valid, batch_size=self.batch_size)
+              print("{} {} {}".format(val_loss, val_acc, fi_score))
+
+        # history.jpg
         self.plot_hist(hist).savefig(get_history_plot_path(self.output_path))
 
     def _get_callbacks(self):

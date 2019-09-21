@@ -64,15 +64,11 @@ class SimpleRNNTraining(ModelTraining):
                     trainable=True)(input_x)
 
         x = SpatialDropout1D(0.3)(x)
-        x = Conv1D(10, 1, padding='same', activation='relu')(x)
+        x = Conv1D(256, 3, padding='same', activation='relu')(x)
 
         x = GlobalMaxPool1D()(x)
         x = BatchNormalization()(x)
         
-        # Dense Layer
-        x = Dense(256, activation='relu')(x)
-        x = Dropout(0.3)(x)    
-
         output = Dense(self.output_size, activation='softmax')(x)
         model  = Model([input_x], output)
 

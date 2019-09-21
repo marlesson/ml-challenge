@@ -78,24 +78,24 @@ class UnzipDataset(luigi.Task):
 class CleanDataFrames(luigi.Task):
     val_size: float = luigi.FloatParameter(default=0.2)
     seed: int = luigi.IntParameter(default=42)
-
+    sample: int = luigi.IntParameter(default=20000000)
     def requires(self):
         return UnzipDataset()
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
         task_hash = self.task_id.split("_")[-1]
         return (luigi.LocalTarget(os.path.join(self.input().path,
-                                               "train_%.2f_%d_%s.csv" % (
-                                                   self.val_size, self.seed, task_hash))),
+                                               "train_%.2f_%d_%d_%s.csv" % (
+                                                   self.val_size, self.seed, self.sample, task_hash))),
                 luigi.LocalTarget(
-                    os.path.join(self.input().path, "val_%.2f_%d_%s.csv" % (self.val_size, self.seed, task_hash))),
-                luigi.LocalTarget(os.path.join(self.input().path, "test.csv")),
+                    os.path.join(self.input().path, "val_%.2f_%d_%d_%s.csv" % (self.val_size, self.seed, self.sample, task_hash))),
+                luigi.LocalTarget(os.path.join(self.input().path, "test_%d.csv" %(self.sample))),
                 luigi.LocalTarget(os.path.join(self.input().path, "df_dummies_category.csv")))
 
 
     def run(self):
-        train_df = pd.read_csv(os.path.join(self.input().path, "train.csv")).sample(1000)
-        test_df  = pd.read_csv(os.path.join(self.input().path, "test.csv")).sample(1000)
+        train_df = pd.read_csv(os.path.join(self.input().path, "train.csv")).sample(self.sample, random_state=self.seed)
+        test_df  = pd.read_csv(os.path.join(self.input().path, "test.csv")).sample(self.sample, random_state=self.seed)
         
         print("Shape: ")
         print("train_df: ", train_df.shape)
@@ -110,10 +110,10 @@ class CleanDataFrames(luigi.Task):
         # Clean Text
         print("==> Transform...")
 
-        train_es_df['title_clean'] = train_es_df['title'].parallel_apply(util.text_clean_es) 
-        train_pt_df['title_clean'] = train_pt_df['title'].parallel_apply(util.text_clean_pt) 
-        test_es_df['title_clean']  = test_es_df['title'].parallel_apply(util.text_clean_es) 
-        test_pt_df['title_clean']  = test_pt_df['title'].parallel_apply(util.text_clean_pt) 
+        train_es_df['title_clean'] = train_es_df['title'].parallel_apply(util.text_clean_es).fillna("") 
+        train_pt_df['title_clean'] = train_pt_df['title'].parallel_apply(util.text_clean_pt).fillna("") 
+        test_es_df['title_clean']  = test_es_df['title'].parallel_apply(util.text_clean_es).fillna("") 
+        test_pt_df['title_clean']  = test_pt_df['title'].parallel_apply(util.text_clean_pt).fillna("") 
 
         # Join
         train_df = pd.concat([train_es_df, train_pt_df]).sort_index()
@@ -140,10 +140,11 @@ class TokenizerDataFrames(luigi.Task):
     seed: int = luigi.IntParameter(default=42)
     num_words: int = luigi.IntParameter(default=5000)
     seq_size: int = luigi.IntParameter(default=20)
+    sample: int = luigi.IntParameter(default=20000000)
 
 
     def requires(self):
-        return CleanDataFrames(val_size=self.val_size, seed=self.seed)
+        return CleanDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample)
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
         task_hash = self.task_id.split("_")[-1]
@@ -167,25 +168,24 @@ class TokenizerDataFrames(luigi.Task):
         test_df  = pd.read_csv(os.path.join(self.input()[2].path), index_col='index')
         df_dummies_category = pd.read_csv(os.path.join(self.input()[3].path), index_col='index')
 
-        print(train_df.head())
-        print(df_dummies_category.head())
-
+        print(train_df.info())
+        
         # Tokenize
         tokenizer  = Tokenizer(num_words=self.num_words)
-        tokenizer.fit_on_texts(train_df['title_clean'])
+        tokenizer.fit_on_texts(train_df['title_clean'].astype(str))
 
         word_index = tokenizer.word_index
         print('\nFound %s unique tokens.\n' % len(word_index))
 
         # Build dataset
         # X = [..,..,..]
-        train_sequences  = tokenizer.texts_to_sequences(train_df['title_clean'])
+        train_sequences  = tokenizer.texts_to_sequences(train_df['title_clean'].astype(str))
         train_X = pad_sequences(train_sequences, maxlen=self.seq_size)
 
-        val_sequences  = tokenizer.texts_to_sequences(val_df['title_clean'])
+        val_sequences  = tokenizer.texts_to_sequences(val_df['title_clean'].astype(str))
         val_X   = pad_sequences(val_sequences, maxlen=self.seq_size)
 
-        test_sequences  = tokenizer.texts_to_sequences(test_df['title_clean'])
+        test_sequences  = tokenizer.texts_to_sequences(test_df['title_clean'].astype(str))
         test_X = pad_sequences(test_sequences, maxlen=self.seq_size)
 
         # Load
@@ -211,9 +211,10 @@ class LoadEmbeddings(luigi.Task):
     seq_size: int = luigi.IntParameter(default=20)
     dim: int = luigi.IntParameter(default=300)
     embedding: str = luigi.ChoiceParameter(choices=["glove", "fasttext"], default="fasttext")
+    sample: int = luigi.IntParameter(default=20000000)
 
     def requires(self):
-        return TokenizerDataFrames(val_size=self.val_size, seed=self.seed, 
+        return TokenizerDataFrames(val_size=self.val_size, seed=self.seed, sample=self.sample,
                                         num_words=self.num_words, seq_size=self.seq_size)
 
     def output(self) -> Tuple[luigi.LocalTarget, luigi.LocalTarget, luigi.LocalTarget]:
