@@ -5,6 +5,9 @@ from nltk.tokenize import word_tokenize
 from nltk.stem.snowball import SnowballStemmer
 import spacy
 from keras import backend as K
+from tensorflow.keras.datasets import mnist
+from tensorflow import keras
+import numpy as np
 
 # https://leportella.com/pt-br/2017/11/30/brincando-de-nlp-com-spacy.html
 LANG = {
@@ -12,9 +15,21 @@ LANG = {
     'es': (spacy.load('es'), nltk.corpus.stopwords.words('spanish'))
 }
 
-from tensorflow.keras.datasets import mnist
-from tensorflow import keras
-import numpy as np
+
+def read_stopwords():
+
+    file_pt      = open('src/files/stopwords_pt.txt')
+    stopwords_pt = file_pt.readlines()
+    stopwords_pt = [unidecode(w.replace('\n', '').strip()) for w in stopwords_pt]
+    file_pt.close()
+
+    file_es      = open('src/files/stopwords_es.txt')
+    stopwords_es = file_es.readlines()
+    stopwords_es = [unidecode(w.replace('\n', '').strip()) for w in stopwords_es]
+    file_es.close()
+
+    return {'pt': stopwords_pt, 'es': stopwords_es}
+
 def smooth_labels(y, mask, smooth_factor):
     '''Convert a matrix of one-hot row-vector labels into smoothed versions.
 
@@ -85,6 +100,8 @@ def tokenize(text, lang='pt'):
     # clean
     text = pre_process(text)
     nlp, stopwords = LANG[lang]
+
+    stopwords = stopwords.extend(read_stopwords()[lang])
 
     # Transform 
     text = nlp(text)
