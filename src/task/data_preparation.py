@@ -8,7 +8,6 @@ from ast import literal_eval
 import pandas as pd
 import numpy as np
 import requests
-from PIL import Image, ImageOps
 import zipfile
 
 #from imblearn.over_sampling.random_over_sampler import RandomOverSampler
@@ -16,7 +15,6 @@ import zipfile
 from sklearn.model_selection import train_test_split
 from glob import glob
 from tqdm._tqdm import tqdm
-from skimage import exposure
 import spacy
 from unidecode import unidecode
 import nltk

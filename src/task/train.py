@@ -8,15 +8,12 @@ from ast import literal_eval
 import pandas as pd
 import numpy as np
 import requests
-from PIL import Image, ImageOps
-import zipfile
 
 #from imblearn.over_sampling.random_over_sampler import RandomOverSampler
 #from imblearn.under_sampling.prototype_selection.random_under_sampler import RandomUnderSampler
 from sklearn.model_selection import train_test_split
 from glob import glob
 from tqdm._tqdm import tqdm
-from skimage import exposure
 import spacy
 from unidecode import unidecode
 import nltk
@@ -198,9 +195,9 @@ class ModelTraining(luigi.Task):
 
 
         # metrics.txt
+        val_loss, val_acc, fi_score = model.evaluate(X_valid, Y_valid, batch_size=self.batch_size)
         with open("%s/metrics.txt" % self.output_path, "w") as summary_file:
             with redirect_stdout(summary_file):
-              val_loss, val_acc, fi_score = model.evaluate(X_valid, Y_valid, batch_size=self.batch_size)
               print("{} {} {}".format(val_loss, val_acc, fi_score))
 
         # history.jpg

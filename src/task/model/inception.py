@@ -40,7 +40,7 @@ from keras import Model
 from keras_radam import RAdam
 from src.util.metrics import *
 
-class SimpleRNNTraining(ModelTraining):
+class InceptionTraining(ModelTraining):
     learning_rate: float = luigi.FloatParameter(1e-3)
     batch_size: int = luigi.IntParameter(default=50)
     epochs: int = luigi.IntParameter(default=30)
@@ -61,12 +61,36 @@ class SimpleRNNTraining(ModelTraining):
                     trainable=True)(input_x)
 
         x = SpatialDropout1D(0.3)(x)
-        x = Conv1D(256, 3, padding='same', activation='relu')(x)
 
+        def inseption_mod(input_layer, layers = 10):
+            ### 1st layer
+            layer_1 = Conv1D(layers, 1, padding='same', activation='relu')(input_layer)
+            layer_1 = Conv1D(layers, 3, padding='same', activation='relu')(layer_1)
+
+            layer_2 = Conv1D(layers, 1, padding='same', activation='relu')(input_layer)
+            layer_2 = Conv1D(layers, 5, padding='same', activation='relu')(layer_2)
+
+            layer_3 = MaxPooling1D(3, strides=1, padding='same')(input_layer)
+            layer_3 = Conv1D(layers, 1, padding='same', activation='relu')(layer_3)
+
+            x_rnn = LSTM(30, return_sequences=True)(input_layer)
+            
+            x   = concatenate([layer_1, layer_2, layer_3, x_rnn], axis = -1)
+            return x
+        
+        x = inseption_mod(x, 30)
+        x = Dropout(0.3)(x)
+
+        # RNN Layer
+        #model.add(LSTM(seq_size))
         x = GlobalMaxPool1D()(x)
         x = BatchNormalization()(x)
         
+        # Dense Layer
+        x = Dense(256, activation='relu')(x)
+        x = Dropout(0.3)(x)    
         output = Dense(self.output_size, activation='softmax')(x)
+        
         model  = Model([input_x], output)
 
         model.compile(loss = 'categorical_crossentropy', 
