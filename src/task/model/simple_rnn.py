@@ -40,12 +40,17 @@ from keras import Model
 from keras_radam import RAdam
 from src.util.metrics import *
 
+#PYTHONPATH="." luigi --module src.task.model.simple_rnn SimpleRNNTraining --local-scheduler --batch-size 500 --epochs 42 --sample 100000 --output-size 1583 --seq-size 50 --input-size 50
 class SimpleRNNTraining(ModelTraining):
     learning_rate: float = luigi.FloatParameter(1e-3)
     batch_size: int = luigi.IntParameter(default=50)
     epochs: int = luigi.IntParameter(default=30)
     input_size: int = luigi.IntParameter(default=20)
     output_size: int = luigi.IntParameter(default=677)
+    dropout: float = luigi.FloatParameter(default=0.3)
+    kernel_size: int = luigi.IntParameter(default=3)
+    filters: int = luigi.IntParameter(default=256)
+    learning_rate: float = luigi.FloatParameter(1e-5)
 
     def create_model(self):
         embedding_matrix = self.get_embeddings()
@@ -60,10 +65,9 @@ class SimpleRNNTraining(ModelTraining):
                     input_length=self.input_size,
                     trainable=True)(input_x)
 
-        x = SpatialDropout1D(0.3)(x)
-        #x = LSTM(20, return_sequences=True)(x)
+        x = SpatialDropout1D(self.dropout)(x)
 
-        x = Conv1D(256, 3, padding='same', activation='relu')(x)
+        x = Conv1D(self.filters, self.kernel_size, padding='same', activation='relu')(x)
 
         x = GlobalMaxPool1D()(x)
         x = BatchNormalization()(x)
@@ -72,7 +76,7 @@ class SimpleRNNTraining(ModelTraining):
         model  = Model([input_x], output)
 
         model.compile(loss = 'categorical_crossentropy', 
-                      optimizer=RAdam(),
+                      optimizer=RAdam(lr=self.learning_rate),
                       metrics = ['accuracy', f1_m])
         
         model.summary()

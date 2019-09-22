@@ -9,26 +9,34 @@ from tensorflow.keras.datasets import mnist
 from tensorflow import keras
 import numpy as np
 
-# https://leportella.com/pt-br/2017/11/30/brincando-de-nlp-com-spacy.html
-LANG = {
-    'pt': (spacy.load('pt'), nltk.corpus.stopwords.words('portuguese')),
-    'es': (spacy.load('es'), nltk.corpus.stopwords.words('spanish'))
-}
-
-
 def read_stopwords():
-
     file_pt      = open('src/files/stopwords_pt.txt')
     stopwords_pt = file_pt.readlines()
     stopwords_pt = [unidecode(w.replace('\n', '').strip()) for w in stopwords_pt]
     file_pt.close()
+
+    stopwords_pt.extend(nltk.corpus.stopwords.words('portuguese'))
 
     file_es      = open('src/files/stopwords_es.txt')
     stopwords_es = file_es.readlines()
     stopwords_es = [unidecode(w.replace('\n', '').strip()) for w in stopwords_es]
     file_es.close()
 
+    stopwords_es.extend(nltk.corpus.stopwords.words('spanish'))
+
+
     return {'pt': stopwords_pt, 'es': stopwords_es}
+
+STOPWORDS = read_stopwords()
+
+# https://leportella.com/pt-br/2017/11/30/brincando-de-nlp-com-spacy.html
+SPACY_PT = spacy.load('pt')
+SPACY_ES = spacy.load('es')
+LANG = {
+    'pt': (SPACY_PT, STOPWORDS['pt']),
+    'es': (SPACY_ES, STOPWORDS['es'])
+}
+
 
 def smooth_labels(y, mask, smooth_factor):
     '''Convert a matrix of one-hot row-vector labels into smoothed versions.
@@ -101,7 +109,7 @@ def tokenize(text, lang='pt'):
     text = pre_process(text)
     nlp, stopwords = LANG[lang]
 
-    stopwords = stopwords.extend(read_stopwords()[lang])
+    #stopwords = stopwords.extend(STOPWORDS[lang])
 
     # Transform 
     text = nlp(text)

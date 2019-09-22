@@ -99,7 +99,7 @@ class CleanDataFrames(luigi.Task):
 
     def run(self):
         train_df = pd.read_csv(os.path.join(self.input().path, "train.csv")).sample(self.sample, random_state=self.seed)
-        test_df  = pd.read_csv(os.path.join(self.input().path, "test.csv"))
+        test_df  = pd.read_csv(os.path.join(self.input().path, "test.csv")).sample(self.sample, random_state=self.seed)
         
         print("Shape: ")
         print("train_df: ", train_df.shape)
