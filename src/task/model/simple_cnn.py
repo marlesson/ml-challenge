@@ -64,7 +64,7 @@ class SimpleCNNTraining(ModelTraining):
                         input_length=self.input_size,
                         trainable=True)(input_x)
 
-        x   = SpatialDropout1D(selfdropout)(x)
+        x   = SpatialDropout1D(self.dropout)(x)
         x   = Conv1D(self.filters, self.kernel_size, padding='same', activation='relu')(x)
         
         x   = GlobalMaxPool1D()(x)
