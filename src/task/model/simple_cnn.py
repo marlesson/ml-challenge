@@ -50,6 +50,7 @@ class SimpleCNNTraining(ModelTraining):
     dropout: float = luigi.FloatParameter(default=0.3)
     kernel_size: int = luigi.IntParameter(default=3)
     filters: int = luigi.IntParameter(default=256)
+    learning_rate: float = luigi.FloatParameter(1e-5)
 
     def create_model(self):
         embedding_matrix = self.get_embeddings()
@@ -76,7 +77,7 @@ class SimpleCNNTraining(ModelTraining):
         model  = Model([input_x], out)
 
         model.compile(loss = 'categorical_crossentropy', 
-                      optimizer=RAdam(),
+                      optimizer=RAdam(lr=self.learning_rate),
                       metrics = ['accuracy', f1_m])
         
         model.summary()
